@@ -25,9 +25,9 @@ jobs:
         run: |
           TODO=()
           echo "::group::Checking for versions files modified in '${GITHUB_SHA:-}'"
-          for container in $(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | awk -F'/' '/\/(versions|Dockerfile)$/{print $1}' | sort -u); do
-            echo "Checking ${container}"
-            if [[ -e "${container}/versions" ]]; then
+          for container in $(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | awk -F'/' '!/^\./{ if (NF > 1) { print $1 }}' | sort -u); do
+            echo "Checking ${container} for Dockerfile and versions"
+            if [[ -e "${container}/versions" && -e "${container}/Dockerfile" ]]; then
               echo "Adding ${container}"
               TODO+=( "${container}" )
             fi
@@ -55,7 +55,9 @@ jobs:
         id: vars
         run: |
           VER=$(tail -n1 ${{ matrix.container }}/versions)
+          REMOTE_VER=$(cd "${{ matrix.container }}" && bash "./version.sh")
           echo "CONTAINER_VERSION=${VER}" >> $GITHUB_OUTPUT
+          echo "REMOTE_VERSION=${REMOTE_VER}" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -76,12 +78,14 @@ jobs:
         with:
           images: ghcr.io/${{ env.NAMESPACE }}/${{ matrix.container }}
           flavor: |
-            latest=true
+            latest=false
           tags: |
             type=semver,pattern={{major}}.{{minor}}.{{patch}},value=${{ steps.vars.outputs.CONTAINER_VERSION }}
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.vars.outputs.CONTAINER_VERSION }}
             type=semver,pattern={{major}},value=${{ steps.vars.outputs.CONTAINER_VERSION }}
-            type=raw,${{ steps.vars.outputs.CONTAINER_VERSION }}
+            type=raw,value=${{ steps.vars.outputs.CONTAINER_VERSION }}
+            type=raw,value=latest,enable=${{ steps.vars.outputs.CONTAINER_VERSION == steps.vars.outputs.REMOTE_VERSION }}
+            type=raw,value={{date 'YYYY-MM-DD'}},enable=${{ steps.vars.outputs.CONTAINER_VERSION == steps.vars.outputs.REMOTE_VERSION }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
