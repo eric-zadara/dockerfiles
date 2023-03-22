@@ -25,7 +25,7 @@ jobs:
         run: |
           TODO=()
           echo "::group::Checking for versions files modified in '${GITHUB_SHA:-}'"
-          for container in $(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | awk -F'/' '/\/versions$/{print $1}'); do
+          for container in $(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | awk -F'/' '/\/(versions|Dockerfile)$/{print $1}' | sort -u); do
             echo "Checking ${container}"
             if [[ -e "${container}/versions" ]]; then
               echo "Adding ${container}"
