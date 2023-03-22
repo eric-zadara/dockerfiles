@@ -32,14 +32,16 @@ jobs:
               NEW_EXIT=$?
               echo "Current version - ${OLD_VER:-}"
               echo "Upstream version - ${NEW_VER:-}"
-              if [[ -n "${NEW_VER:-}" && "${OLD_VER:-}" != "${NEW_VER:-}" && ${NEW_EXIT} -eq 0 ]]; then
+              if [[ -n "${NEW_VER:-}" && ${NEW_EXIT} -eq 0 && "${OLD_VER:-}" != "${NEW_VER:-}" ]]; then
+                echo "Updating versions file for ${container}"
                 echo "${NEW_VER}" >> "${container}/versions"
                 git add "${container}/versions"
               fi
               echo "::endgroup::"
             fi
           done
-          if [[ $(git status -s | grep '^A' | wc -l) -gt 0 ]]; then
+          git status -s
+          if [[ $(git status -s | grep '^[AM]' | wc -l) -gt 0 ]]; then
             echo "::group::Submitting updated version numbers"
             git config pull.ff only
             git config user.name github-actions
