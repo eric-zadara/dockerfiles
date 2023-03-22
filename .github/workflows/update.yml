@@ -1,0 +1,49 @@
+on:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  NAMESPACE: eric-zadara
+
+jobs:
+  identify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    outputs:
+      packages: "${{ steps.vars.outputs.packages }}"
+
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: identify new versions
+        run: |
+          OPWD=$(pwd)
+          for container in $(find . -mindepth 1 -maxdepth 1 -type d | sed 's@^./@@g'); do
+            if [[ -x "${container}/version.sh" ]]; then
+              echo "::group::${container}"
+              OLD_VER=$(tail -n 1 "${container}/versions" || true)
+              NEW_VER=$(cd "${container}" && bash "./version.sh")
+              NEW_EXIT=$?
+              echo "Current version - ${OLD_VER:-}"
+              echo "Upstream version - ${NEW_VER:-}"
+              if [[ -n "${NEW_VER:-}" && "${OLD_VER:-}" != "${NEW_VER:-}" && ${NEW_EXIT} -eq 0 ]]; then
+                echo "${NEW_VER}" >> "${container}/versions"
+                git add "${container}/versions"
+              fi
+              echo "::endgroup::"
+            fi
+          done
+          if [[ $(git status -s | grep '^A' | wc -l) -gt 0 ]]; then
+            echo "::group::Submitting updated version numbers"
+            git config pull.ff only
+            git config user.name github-actions
+            git config user.email github-actions@github.com
+            git pull --quiet origin
+            git commit -m "$(date -I) - Update versions" --author="github-actions <github-actions@github.com>"
+            git push origin --quiet
+            echo "::endgroup::"
+          fi
