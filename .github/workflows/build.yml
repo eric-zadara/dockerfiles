@@ -20,7 +20,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          fetch-depth: 2
 
       - name: identify containers to build
         id: vars
@@ -28,8 +28,11 @@ jobs:
           TODO=()
           echo "::group::Checking for versions files modified in '${GITHUB_SHA:-}'"
           for container in $(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | awk -F'/' '/\/versions$/{print $1}'); do
-            echo "Adding ${container}"
-            TODO+=( "${container}" )
+            echo "Checking ${container}"
+            if [[ -e "${container}/versions" ]]; then
+              echo "Adding ${container}"
+              TODO+=( "${container}" )
+            fi
           done
           echo "::endgroup::"
           PAYLOAD=$(echo -n "${TODO[@]}" | tr ' ' '\n' | jq -c --raw-input -s 'split("\n")')
