@@ -33,7 +33,7 @@ jobs:
               NEW_EXIT=$?
               echo "Current version - ${OLD_VER:-}"
               echo "Upstream version - ${NEW_VER:-}"
-              if [[ -n "${NEW_VER:-}" && ${NEW_EXIT} -eq 0 && "${OLD_VER:-}" != "${NEW_VER:-}" ]]; then
+              if [[ -n "${NEW_VER:-}" && ${NEW_EXIT} -eq 0 && "${OLD_VER:-}" != "${NEW_VER:-}" && "${NEW_VER:-}" != "null" ]]; then
                 echo "Updating versions file for ${container}"
                 echo "${NEW_VER}" >> "${container}/versions"
                 git add "${container}/versions"
