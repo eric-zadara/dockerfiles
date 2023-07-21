@@ -1,4 +1,5 @@
-FROM quay.io/ansible/awx:latest
+ARG CONTAINER_VERSION=latest
+FROM quay.io/ansible/awx:${CONTAINER_VERSION}
 USER root
 # https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/security_hardening/using-the-system-wide-cryptographic-policies_security-hardening
 RUN \
