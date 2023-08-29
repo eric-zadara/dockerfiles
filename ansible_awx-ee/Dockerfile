@@ -9,9 +9,10 @@ RUN \
   rm -Rf /var/cache/yum && \
   pip3 install --no-cache-dir --upgrade pip && \
   pip3 install --no-cache-dir \
+    hvac==1.0.2 \
     jinja2>3.0.0 \
     jmespath \
     netaddr \
-    hvac==1.0.2 && \
+    slack_sdk && \
   rm -Rf /home/runner/.cache
 USER 1000
