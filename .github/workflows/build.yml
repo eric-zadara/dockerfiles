@@ -105,7 +105,7 @@ jobs:
           images: ghcr.io/${{ env.NAMESPACE }}/${{ steps.vars.outputs.CONTAINER }}
           flavor: |
             latest=false
-            suffix=${{ steps.vars.outputs.SUFFIX }}
+            suffix=-${{ steps.vars.outputs.SUFFIX }}
           tags: |
             type=semver,pattern={{major}}.{{minor}}.{{patch}},value=${{ steps.vars.outputs.CONTAINER_VERSION }}
             type=semver,pattern={{major}}.{{minor}},value=${{ steps.vars.outputs.CONTAINER_VERSION }}
@@ -118,7 +118,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ${{ steps.vars.outputs.CONTAINER }}
-          file: ${{ steps.vars.outputs.DOCKERFILE }}
+          file: ${{ steps.vars.outputs.CONTAINER }}/${{ steps.vars.outputs.DOCKERFILE }}
           push: true
           tags: ${{ steps.vars.outputs.SUFFIX == '' && steps.meta.outputs.tags || steps.meta-suffix.outputs.tags }}
           labels: ${{ steps.vars.outputs.SUFFIX == '' && steps.meta.outputs.labels || steps.meta-suffix.outputs.labels }}
