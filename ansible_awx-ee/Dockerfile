@@ -13,6 +13,7 @@ RUN \
     jinja2>3.0.0 \
     jmespath \
     netaddr \
+    pexpect \
     slack_sdk && \
   rm -Rf /home/runner/.cache
 USER 1000
