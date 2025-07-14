@@ -6,6 +6,7 @@ RUN \
     build-essential \
     python-pip \
     python-netaddr \
+    fakeroot \
     libpcre3 \
     libpcre3-dev && \
   apt-get clean && \
