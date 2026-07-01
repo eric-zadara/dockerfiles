@@ -1,14 +1,33 @@
 ARG CONTAINER_VERSION=latest
 FROM quay.io/ansible/awx-ee:${CONTAINER_VERSION}
 USER root
+# ansible-core 2.16 requires a Python 3.10+ control interpreter, but the upstream
+# awx-ee base (CentOS Stream 9) ships Python 3.9, which caps pip at ansible-core ~2.15.
+# So we re-home the control stack onto Python 3.11:
+#   1. install python3.11 (+ build deps for source-only wheels such as kerberos)
+#   2. carry the base image's *pip-installed* dependency closure across to 3.11 so the
+#      inherited collections keep working (freeze is scoped to /usr/local/lib to exclude
+#      RPM-owned OS modules like gpg/libcomps/dnf, and to name==version pins to exclude
+#      git/bundled-wheel refs that can't be reinstalled from PyPI)
+#   3. install ansible-core 2.16 + our extra libraries into 3.11
+#   4. point the default python3 at 3.11 (dnf is pinned to python3.9, so it is unaffected;
+#      pip rewrites the ansible / ansible-runner console-script shebangs to 3.11 for us)
 # https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/security_hardening/using-the-system-wide-cryptographic-policies_security-hardening
 RUN \
   update-crypto-policies --set LEGACY:SHA1 && \
-  yum install -y binutils && \
+  yum install -y \
+    binutils \
+    python3.11 python3.11-pip python3.11-devel \
+    gcc gcc-c++ make \
+    krb5-devel openssl-devel libffi-devel libxml2-devel libxslt-devel && \
   yum clean all && \
   rm -Rf /var/cache/yum && \
-  pip3 install --no-cache-dir --upgrade pip && \
-  pip3 install --no-cache-dir \
+  /usr/bin/python3.9 -m pip freeze --path /usr/local/lib/python3.9/site-packages \
+    | grep -E '^[A-Za-z0-9_.-]+==' \
+    | grep -viE '^ansible-core==' > /tmp/base-reqs.txt && \
+  python3.11 -m pip install --no-cache-dir --upgrade pip && \
+  python3.11 -m pip install --no-cache-dir -r /tmp/base-reqs.txt && \
+  python3.11 -m pip install --no-cache-dir \
     ansible-core==2.16.0 \
     hvac==1.0.2 \
     jinja2>3.0.0 \
@@ -16,5 +35,6 @@ RUN \
     netaddr \
     pexpect \
     slack_sdk && \
-  rm -Rf /home/runner/.cache
+  ln -sf /usr/bin/python3.11 /usr/bin/python3 && \
+  rm -Rf /tmp/base-reqs.txt /home/runner/.cache
 USER 1000
